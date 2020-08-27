@@ -1,0 +1,128 @@
+﻿@page "/todo"
+@inject BlazorTODOList.Services.Services.Repository.IRepository repository;
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+            <h2 class="text-center">Список дел (@todos.Count(item=>!item.IsDone))</h2>
+            <!--Добавление нового задания-->
+            <div class="row mb-3">
+                <div class="col">
+                    <input class="form-control" placeholder="Что необходимо сделать" @bind="newTodo" />
+                </div>
+                <div class="col">
+                    <button class="btn btn-success" @onclick="AddTodo">Добавить</button>
+                </div>
+            </div>
+            <!--  Отображение таблицы с заданиями  -->
+            <table class="table table-sm table-bordered table-hover ">
+                <!--Заголовок таблицы-->
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col">Выполнено</th>
+                        <th scope="col" class="col-4">Наименование</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <!--Тело таблицы-->
+                @foreach (var item in todos)
+                {
+                    <tbody>
+                        <tr>
+                            <!--Чек-бокс-->
+                            <td class="text-center">
+                                @if (item.IsDone)//Проверяем, был ли флажек в БД
+                                {
+                                    //Если был ставим атрибут checked
+                                    <input type="checkbox" checked="checked" value="item.IsDone" @onchange="(()=> ChangeCheckBoxState(item))" class="align-content-center" />
+                                }
+                                else
+                                {
+                                    <input type="checkbox" value="item.IsDone" @onchange="(()=> ChangeCheckBoxState(item))" class="align-content-center" />
+                                }
+
+                            </td>
+                            <!--Наименование задачи-->
+                            <td>
+                                <div style="@(item.IsDone ? "color: green; text-decoration: line-through;" : "")">
+                                    @item.Title
+                                </div>
+                                
+                            </td>
+                            <!--Блок кнопок-->
+                            <td>
+                                <button class="btn btn-info bt-sm" @onclick="(() => EditTodo(item))">Изменить</button>
+                                <button class="btn btn-sm btn-danger" @onclick="(() => DeleteTodo(item))">Удалить</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                }
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+@code 
+{
+    private IEnumerable<TodoItem> todos;
+    private string newTodo;
+
+    protected override void OnInitialized()
+    {
+        todos = new List<TodoItem>();
+        todos = repository.GetAllItems();
+    }
+
+    //Обработка нажатия кнопки
+
+    /// <summary>
+    /// Добавить дело
+    /// </summary>
+    private void AddTodo()
+    {
+        if (!string.IsNullOrWhiteSpace(newTodo))
+        {
+            //todos.Add(new TodoItem { Title = newTodo });
+            var item = new TodoItem()
+            {
+                Title = newTodo,
+                IsDone = default
+            };
+
+            repository.AddTodo(item);
+            newTodo = default;
+        }
+    }
+
+    /// <summary>
+    /// Изменить запись
+    /// </summary>
+    private void EditTodo(TodoItem editItem)
+    {
+        repository.ValueChanged(editItem);
+
+    }
+
+    /// <summary>
+    /// Удалить запись
+    /// </summary>
+    /// <param name="item"></param>
+    private void DeleteTodo(TodoItem item)
+    {
+        //todos.Remove(item);
+        repository.DeleteItem(item.Id);
+    }
+
+    /// <summary>
+    /// Обработка чек-бокса
+    /// </summary>
+    /// <param name="item"></param>
+    private void ChangeCheckBoxState(TodoItem item)
+    {
+        item.IsDone = !item.IsDone;
+        repository.ValueChanged(item);
+    }
+
+}
